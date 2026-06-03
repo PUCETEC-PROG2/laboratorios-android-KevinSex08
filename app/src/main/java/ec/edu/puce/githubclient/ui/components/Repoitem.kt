@@ -33,7 +33,6 @@ fun RepoItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Sección de Información (Imagen + Textos)
             Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
                 AsyncImage(
                     model = repository.owner.avatarUrl,
@@ -69,24 +68,21 @@ fun RepoItem(
                 }
             }
 
-            // Sección de Botones de Acción
             Row {
                 IconButton(onClick = {
-                    // CAMBIO CLAVE: Unimos el login del dueño y el nombre del repo
-                    // Ejemplo: "jxherrera/MiProyecto"
                     onEdit("${repository.owner.login}/${repository.name}")
                 }) {
                     Icon(
                         imageVector = Icons.Default.Edit,
                         contentDescription = "Editar",
-                        tint = Color(0xFF4A90E2) // Azul suave
+                        tint = Color(0xFF4A90E2)
                     )
                 }
                 IconButton(onClick = { onDelete(repository) }) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Eliminar",
-                        tint = Color(0xFFE53935) // Rojo suave
+                        tint = Color(0xFFE53935)
                     )
                 }
             }

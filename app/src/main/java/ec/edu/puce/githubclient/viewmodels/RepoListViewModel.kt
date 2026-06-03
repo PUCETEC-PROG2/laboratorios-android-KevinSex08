@@ -29,9 +29,6 @@ class RepoListViewModel : ViewModel() {
             _isLoading.value = true
             _errorMsg.value = null
             try {
-                // EL TRUCO ESTÁ AQUÍ:
-                // Le pasamos el tiempo actual (t) para que GitHub sepa que es una petición NUEVA
-                // y no nos devuelva una lista vieja guardada en caché.
                 _repos.value = RetrofitClient.apiService.getRepositories(
                     t = "${System.currentTimeMillis()}"
                 )
@@ -43,20 +40,16 @@ class RepoListViewModel : ViewModel() {
         }
     }
 
-    // Modificamos la función para que reciba el objeto completo del repositorio
-    // Esto es necesario porque GitHub pide el dueño (owner) y el nombre para borrar
     fun deleteRepo(repository: Repository) {
         viewModelScope.launch {
-            _isLoading.value = true // Mostramos carga mientras borra
+            _isLoading.value = true
             try {
-                // Llamamos a GitHub usando el login del owner y el nombre del repo
                 val response = RetrofitClient.apiService.deleteRepository(
                     owner = repository.owner.login,
                     repoName = repository.name
                 )
 
                 if (response.isSuccessful) {
-                    // Refrescamos la lista para que el repo ya no aparezca
                     fetchRepos()
                 } else {
                     _errorMsg.value = "Error ${response.code()}: No se pudo eliminar el repositorio (Verifica permisos del Token)"

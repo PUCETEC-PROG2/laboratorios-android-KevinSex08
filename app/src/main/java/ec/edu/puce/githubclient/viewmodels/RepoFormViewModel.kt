@@ -35,30 +35,28 @@ class RepoFormViewModel : ViewModel() {
         }
     }
 
-    // NUEVA FUNCIÓN: Para editar el repositorio en GitHub
+
     fun updateRepo(repoIdString: String, newName: String, newDescription: String) {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMsg.value = null
             try {
-                // AQUÍ ESTÁ LA MAGIA:
-                // Separamos el string "dueño/nombre" que enviamos desde el botón de la lista
                 val parts = repoIdString.split("/")
 
-                // Si la separación fue exitosa, tomamos los valores, sino, usamos fallbacks
+
                 val owner = if (parts.size > 1) parts[0] else "me"
                 val actualRepoName = if (parts.size > 1) parts[1] else repoIdString
 
                 val repoBody = RepositoryPayload(newName, newDescription)
 
-                // Llamamos a la API enviando los datos por separado como GitHub lo exige
+
                 val response = RetrofitClient.apiService.updateRepository(
                     owner = owner,
                     repoName = actualRepoName,
                     repo = repoBody
                 )
 
-                // Verificamos que la petición haya sido exitosa (código 200)
+
                 if (response.isSuccessful) {
                     _inSuccess.value = true
                 } else {

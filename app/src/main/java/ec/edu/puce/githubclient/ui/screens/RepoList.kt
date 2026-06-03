@@ -65,7 +65,7 @@ fun RepoList(
     }
 
     Scaffold(
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, // Host para las alertas de texto
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { onNavigateToForm(null) },
@@ -102,7 +102,6 @@ fun RepoList(
                             repository = repo,
                             onEdit = { id -> onNavigateToForm(id) },
                             onDelete = {
-                                // En lugar de borrar directo, abrimos el diálogo
                                 repoToDelete = repo
                             }
                         )

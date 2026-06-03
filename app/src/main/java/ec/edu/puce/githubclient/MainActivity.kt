@@ -22,10 +22,8 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             GithubClientTheme {
-                // Navegación manual por estados
                 var currentScreen by remember { mutableStateOf("repoList") }
 
-                // Esta variable guardará el ID cuando presionemos "Editar"
                 var selectedRepoId by remember { mutableStateOf<String?>(null) }
 
                 val listViewModel: RepoListViewModel = viewModel()
@@ -34,7 +32,7 @@ class MainActivity : ComponentActivity() {
                     "repoList" -> RepoList(
                         viewModel = listViewModel,
                         onNavigateToForm = { id ->
-                            selectedRepoId = id // Guardamos el ID (será null si es un nuevo repo)
+                            selectedRepoId = id
                             currentScreen = "repoForm"
                         }
                     )
@@ -46,11 +44,8 @@ class MainActivity : ComponentActivity() {
                             currentScreen = "repoList"
                         },
                         onSaveSuccess = {
-                            // 1. Primero cambiamos de pantalla para que la UI reaccione
                             currentScreen = "repoList"
-                            // 2. Limpiamos la variable
                             selectedRepoId = null
-                            // 3. Finalmente, pedimos al servidor que recargue los datos
                             listViewModel.fetchRepos()
                         }
                     )
