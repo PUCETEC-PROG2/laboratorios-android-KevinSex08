@@ -8,49 +8,72 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import ec.edu.puce.githubclient.models.Repository
 import ec.edu.puce.githubclient.ui.components.RepoItem
-import ec.edu.puce.githubclient.ui.theme.GithubClientTheme
 import ec.edu.puce.githubclient.viewmodels.RepoListViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun RepoList(
     modifier: Modifier = Modifier,
-    viewModel: RepoListViewModel = viewModel(),
-    onNavigateToForm: () -> Unit
+    viewModel: RepoListViewModel,
+    onNavigateToForm: (String?) -> Unit
 ) {
-
     val repos by viewModel.repos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMsg by viewModel.errorMsg.collectAsState()
 
+    // Estados para las alertas
+    var repoToDelete by remember { mutableStateOf<Repository?>(null) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    // Dialogo de Confirmación para Eliminar
+    if (repoToDelete != null) {
+        AlertDialog(
+            onDismissRequest = { repoToDelete = null },
+            title = { Text("¿Eliminar repositorio?") },
+            text = { Text("¿Estás seguro de que deseas eliminar '${repoToDelete?.name}'? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                Button(
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    onClick = {
+                        val repoName = repoToDelete?.name ?: ""
+                        repoToDelete?.let { viewModel.deleteRepo(it) }
+                        repoToDelete = null
+                        // Mostrar mensaje de éxito
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Repositorio '$repoName' eliminado correctamente")
+                        }
+                    }
+                ) {
+                    Text("Eliminar", color = Color.White)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { repoToDelete = null }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }, // Host para las alertas de texto
         floatingActionButton = {
             FloatingActionButton(
-                onClick = {
-                    onNavigateToForm()
-                },
+                onClick = { onNavigateToForm(null) },
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primaryContainer,
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Agregar"
-                )
+                Icon(imageVector = Icons.Default.Add, contentDescription = "Agregar")
             }
         }
     ) { innerPadding ->
@@ -60,44 +83,32 @@ fun RepoList(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-
             if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center)
-                )
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             }
 
             errorMsg?.let {
                 Text(
                     text = it,
                     color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier
-                        .align(Alignment.Center)
-                        .padding(16.dp)
+                    modifier = Modifier.align(Alignment.Center).padding(16.dp)
                 )
             }
 
             if (!isLoading && errorMsg.isNullOrBlank()) {
-
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-
-                    items(repos) { repo ->
-                        RepoItem(repository = repo)
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    items(repos) { repo: Repository ->
+                        RepoItem(
+                            repository = repo,
+                            onEdit = { id -> onNavigateToForm(id) },
+                            onDelete = {
+                                // En lugar de borrar directo, abrimos el diálogo
+                                repoToDelete = repo
+                            }
+                        )
                     }
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RepoListPreview() {
-    GithubClientTheme {
-        RepoList(
-            onNavigateToForm = {}
-        )
     }
 }

@@ -1,95 +1,95 @@
 package ec.edu.puce.githubclient.ui.components
 
-import android.R
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.ModifierLocalBeyondBoundsLayout
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import ec.edu.puce.githubclient.models.GithubUser
 import ec.edu.puce.githubclient.models.Repository
-import org.intellij.lang.annotations.Language
 
 @Composable
-fun RepoItem (
-    repository: Repository
+fun RepoItem(
+    repository: Repository,
+    onEdit: (String) -> Unit,
+    onDelete: (Repository) -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding( all = 8.dp)
+            .padding(all = 8.dp)
     ) {
-        Row (
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding( all = 16.dp)
+                .padding(all = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            AsyncImage(
-                model = repository.owner.avatarUrl,
-                contentDescription = "Imagen de ${repository.name}",
-                modifier = Modifier.size(68.dp),
-                contentScale = ContentScale.Crop
-            )
-
-            Spacer(modifier = Modifier.width( width = 16.dp))
-
-            Column {
-                Text(
-                    text = repository.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+            // Sección de Información (Imagen + Textos)
+            Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                AsyncImage(
+                    model = repository.owner.avatarUrl,
+                    contentDescription = "Imagen de ${repository.name}",
+                    modifier = Modifier.size(60.dp),
+                    contentScale = ContentScale.Crop
                 )
 
-                Spacer(modifier = Modifier.height( height = 4.dp))
+                Spacer(modifier = Modifier.width(16.dp))
 
-                if (!repository.description.isNullOrBlank()) {
+                Column {
                     Text(
-                        text = repository.description,
-                        style = MaterialTheme.typography.bodySmall,
+                        text = repository.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    if (!repository.description.isNullOrBlank()) {
+                        Text(
+                            text = repository.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1
+                        )
+                    }
+
+                    if (!repository.language.isNullOrBlank()) {
+                        Text(
+                            text = repository.language,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            // Sección de Botones de Acción
+            Row {
+                IconButton(onClick = {
+                    // CAMBIO CLAVE: Unimos el login del dueño y el nombre del repo
+                    // Ejemplo: "jxherrera/MiProyecto"
+                    onEdit("${repository.owner.login}/${repository.name}")
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Editar",
+                        tint = Color(0xFF4A90E2) // Azul suave
                     )
                 }
-
-                Spacer(modifier = Modifier.height( height = 4.dp))
-
-                if (!repository.language.isNullOrBlank()) {
-                    Text(
-                        text = repository.language,
-                        style = MaterialTheme.typography.labelSmall,
-
-                        )
+                IconButton(onClick = { onDelete(repository) }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Eliminar",
+                        tint = Color(0xFFE53935) // Rojo suave
+                    )
                 }
             }
         }
     }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RepoItemPreview () {
-    val repository= Repository(
-        id = "12345",
-        name = "Repositorio de Android",
-        description = "Repositorio de Android paralelo 1471",
-        language = "Kotlin",
-        owner = GithubUser (
-            id = "123",
-            login = "jxherrera",
-            avatarUrl = "XXXXXX"
-        )
-    )
-    RepoItem(repository)
 }

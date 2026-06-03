@@ -18,32 +18,40 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         enableEdgeToEdge()
 
         setContent {
-
             GithubClientTheme {
-
+                // Navegación manual por estados
                 var currentScreen by remember { mutableStateOf("repoList") }
+
+                // Esta variable guardará el ID cuando presionemos "Editar"
+                var selectedRepoId by remember { mutableStateOf<String?>(null) }
+
                 val listViewModel: RepoListViewModel = viewModel()
 
                 when (currentScreen) {
-
                     "repoList" -> RepoList(
-                        onNavigateToForm = {
+                        viewModel = listViewModel,
+                        onNavigateToForm = { id ->
+                            selectedRepoId = id // Guardamos el ID (será null si es un nuevo repo)
                             currentScreen = "repoForm"
                         }
                     )
 
                     "repoForm" -> RepoForm(
+                        repoId = selectedRepoId,
                         onBackClick = {
+                            selectedRepoId = null
                             currentScreen = "repoList"
                         },
-
                         onSaveSuccess = {
-                            listViewModel.fetchRepos()
+                            // 1. Primero cambiamos de pantalla para que la UI reaccione
                             currentScreen = "repoList"
+                            // 2. Limpiamos la variable
+                            selectedRepoId = null
+                            // 3. Finalmente, pedimos al servidor que recargue los datos
+                            listViewModel.fetchRepos()
                         }
                     )
                 }

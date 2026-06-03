@@ -2,14 +2,14 @@ package ec.edu.puce.githubclient.services
 
 import ec.edu.puce.githubclient.models.Repository
 import ec.edu.puce.githubclient.models.RepositoryPayload
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.Response
+import retrofit2.http.*
 
 interface ApiService {
 
-    @GET("/user/repos")
+    // AÑADIMOS ESTA LÍNEA PARA EVITAR EL CACHÉ DE 60 SEGUNDOS
+    @Headers("Cache-Control: no-cache")
+    @GET("user/repos")
     suspend fun getRepositories(
         @Query("sort") sort: String = "created",
         @Query("direction") direction: String = "desc",
@@ -18,9 +18,24 @@ interface ApiService {
         @Query("t") t: String = "${System.currentTimeMillis()}",
     ): List<Repository>
 
+    // Crear repositorio (GitHub)
     @POST("user/repos")
     suspend fun createRepository (
         @Body repository: RepositoryPayload
     ) : Repository
-}
 
+    // Editar: GitHub usa PATCH para editar nombre o descripción
+    @PATCH("repos/{owner}/{repo}")
+    suspend fun updateRepository(
+        @Path("owner") owner: String,
+        @Path("repo") repoName: String,
+        @Body repo: RepositoryPayload
+    ): Response<Repository>
+
+    // Eliminar: GitHub usa DELETE
+    @DELETE("repos/{owner}/{repo}")
+    suspend fun deleteRepository(
+        @Path("owner") owner: String,
+        @Path("repo") repoName: String
+    ): Response<Unit>
+}

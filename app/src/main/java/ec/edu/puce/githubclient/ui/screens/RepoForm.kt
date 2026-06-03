@@ -1,50 +1,26 @@
 package ec.edu.puce.githubclient.ui.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import ec.edu.puce.githubclient.ui.theme.GithubClientTheme
 import ec.edu.puce.githubclient.viewmodels.RepoFormViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RepoForm(
+    repoId: String? = null,
     onBackClick: () -> Unit = {},
     onSaveSuccess: () -> Unit = {},
     viewModel: RepoFormViewModel = viewModel()
 ) {
-
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMsg by viewModel.errorMsg.collectAsState()
     val inSuccess by viewModel.inSuccess.collectAsState()
@@ -52,22 +28,55 @@ fun RepoForm(
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
 
+    var showConfirmDialog by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
     LaunchedEffect(inSuccess) {
         if (inSuccess) {
-            onSaveSuccess()
-            viewModel.resetSuccess()
+            scope.launch {
+                val mensaje = if (repoId == null) "¡Creado con éxito!" else "¡Editado con éxito!"
+                snackbarHostState.showSnackbar(mensaje)
+                onSaveSuccess()
+                viewModel.resetSuccess()
+            }
         }
     }
 
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text(if (repoId == null) "Confirmar creación" else "Confirmar edición") },
+            text = { Text("¿Estás seguro de que deseas guardar los cambios en este repositorio?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        if (repoId == null) {
+                            viewModel.createRepo(name, description)
+                        } else {
+                            viewModel.updateRepo(repoId, name, description)
+                        }
+                    }
+                ) {
+                    Text("Aceptar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Crear Repositorio") },
-
+                title = { Text(if (repoId == null) "Crear Repositorio" else "Editar Repositorio") },
                 navigationIcon = {
-                    IconButton(
-                        onClick = onBackClick
-                    ) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Regresar",
@@ -75,7 +84,6 @@ fun RepoForm(
                         )
                     }
                 },
-
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -83,7 +91,6 @@ fun RepoForm(
             )
         }
     ) { innerPadding ->
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -92,24 +99,12 @@ fun RepoForm(
             verticalArrangement = Arrangement.Center
         ) {
             if (isLoading) {
-                CircularProgressIndicator(
-                    Modifier.align(Alignment.CenterHorizontally)
-                )
-            } else if (!errorMsg.isNullOrBlank()) {
-                Text(
-                    text = errorMsg!!,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
-                )
+                CircularProgressIndicator(Modifier.align(Alignment.CenterHorizontally))
             } else {
                 OutlinedTextField(
                     value = name,
-                    onValueChange = {
-                        name = it
-                    },
-                    label = {
-                        Text("Nombre del repositorio")
-                    },
+                    onValueChange = { name = it },
+                    label = { Text("Nombre del repositorio") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
@@ -118,12 +113,8 @@ fun RepoForm(
 
                 OutlinedTextField(
                     value = description,
-                    onValueChange = {
-                        description = it
-                    },
-                    label = {
-                        Text("Descripción del repositorio")
-                    },
+                    onValueChange = { description = it },
+                    label = { Text("Descripción del repositorio") },
                     modifier = Modifier.fillMaxWidth(),
                     minLines = 5
                 )
@@ -131,42 +122,24 @@ fun RepoForm(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = {
-                        viewModel.createRepo(name, description)
-                    },
+                    onClick = { showConfirmDialog = true },
                     modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
+                    enabled = !isLoading && name.isNotBlank()
                 ) {
-
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "Guardar"
-                    )
-
+                    Icon(imageVector = Icons.Default.Send, contentDescription = "Guardar")
                     Spacer(modifier = Modifier.width(16.dp))
-
                     Text(
-                        if (isLoading) "Guardando..." else "Guardar"
+                        if (isLoading) "Procesando..."
+                        else if (repoId == null) "Guardar"
+                        else "Guardar Cambios"
                     )
                 }
 
                 errorMsg?.let {
                     Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = it,
-                        color = MaterialTheme.colorScheme.error
-                    )
+                    Text(text = it, color = MaterialTheme.colorScheme.error)
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun RepoFormPreview() {
-    GithubClientTheme {
-        RepoForm()
     }
 }
